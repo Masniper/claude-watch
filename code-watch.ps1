@@ -17,7 +17,7 @@ param(
 )
 
 $RefreshSeconds = 2
-$VpnAdapterPattern = '(?i)(vpn|wireguard|wintun|openvpn|tailscale|nordlynx|proton|mullvad|anyconnect|globalprotect|fortinet|tap[-_ ]|tun[-_ ])'
+$VpnAdapterPattern = '(?i)(vpn|wireguard|wintun|openvpn|openconnect|tailscale|nordlynx|proton|mullvad|anyconnect|globalprotect|fortinet|tap[-_ ]|tun[-_ ])'
 
 Add-Type -Namespace CodeWatch -Name NativeMethods -MemberDefinition @'
 [System.Runtime.InteropServices.DllImport("ntdll.dll")]
@@ -331,6 +331,7 @@ function Invoke-SelfTest {
 
     if (-not (Test-VpnAdapter $vpnSample)) { throw 'VPN adapter detection failed.' }
     if (-not (Test-VpnAdapter $ciscoSample)) { throw 'Cisco AnyConnect adapter detection failed.' }
+    if (-not (Test-VpnAdapter ([pscustomobject]@{ Name = 'corp.example_3ea3e298'; InterfaceDescription = 'OpenConnect Tunnel' }))) { throw 'OpenConnect adapter detection failed.' }
     if (Test-VpnAdapter $ethernetSample) { throw 'Unrelated adapter detection failed.' }
 
     # Synthetic process table: Code.exe root (1000) with a renderer
