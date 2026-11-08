@@ -103,16 +103,20 @@ function scriptPathsFor(extensionPath: string): { command: string; args: string[
 
   if (process.platform === 'win32') {
     const script = path.join(extensionPath, 'scripts', 'code-watch.ps1');
+    const daemonArgs = [
+      '-NoProfile',
+      '-ExecutionPolicy', 'Bypass',
+      '-File', `"${script}"`,
+      '-Daemon',
+      '-StatusFile', `"${statusFile}"`,
+      '-AppProcessName', `"${appName || 'Code'}"`,
+    ];
+    const quoted = daemonArgs.map((arg) => `'${arg.replace(/'/g, "''")}'`).join(',');
+    // powershell.exe exits at once under DETACHED_PROCESS, and a direct child would sit in the
+    // tree it freezes. Start-Process gives it a console and an already-exited parent.
     return {
       command: 'powershell.exe',
-      args: [
-        '-NoProfile',
-        '-ExecutionPolicy', 'Bypass',
-        '-File', script,
-        '-Daemon',
-        '-StatusFile', statusFile,
-        '-AppProcessName', appName || 'Code',
-      ],
+      args: ['-NoProfile', '-NonInteractive', '-Command', `Start-Process powershell.exe -WindowStyle Hidden -ArgumentList ${quoted}`],
     };
   }
 
@@ -159,11 +163,12 @@ function startWatcher(extensionPath: string): void {
   }
 
   const child = spawn(target.command, target.args, {
-    detached: true,
+    detached: process.platform !== 'win32',
     stdio: 'ignore',
     windowsHide: true,
     env: target.env,
   });
+  child.on('error', (err) => vscode.window.showErrorMessage(`Code Watch: could not start the watcher: ${err.message}`));
   child.unref();
 }
 
